@@ -1,13 +1,22 @@
 require("dotenv").config();
 const puppeteer = require("puppeteer");
 
+function getRandomDelay(minMinutes, maxMinutes) {
+  const minMilliseconds = minMinutes * 60 * 1000;
+  const maxMilliseconds = maxMinutes * 60 * 1000;
+  return (
+    Math.floor(Math.random() * (maxMilliseconds - minMilliseconds + 1)) +
+    minMilliseconds
+  );
+}
+
 async function autoCheckIn() {
   // 確認環境變數是否成功引入
   console.log("CHECKIN_USERNAME:", process.env.CHECKIN_USERNAME);
   console.log("CHECKIN_PASSWORD:", process.env.CHECKIN_PASSWORD);
 
   const browser = await puppeteer.launch({
-    headless: false,
+    headless: true,
     args: ["--no-sandbox", "--disable-setuid-sandbox"],
   });
 
@@ -23,29 +32,53 @@ async function autoCheckIn() {
 
     await page.goto("https://imo.3t.org.tw/FActive/Index/2756"); // 直接導航到打卡頁面
 
-    // // 打卡
-    // await page.click("#checkin-button");
-    // await page.waitForSelector("#success-message");
+    // 獲取當前時間
+    const currentTime = new Date();
+    const currentHour = currentTime.getHours();
 
-    // 將打卡按鈕添加邊框
+    console.log("currentHour:", currentHour);
+
+    // if (currentHour >= 8 && currentHour < 9) {
+    //   const delay = getRandomDelay(1, 3);
+    //   await new Promise((resolve) => setTimeout(resolve, delay));
+    //   await page.click("#SignIn_24409");
+    // } else if (currentHour >= 18 && currentHour < 20) {
+    //   const delay = getRandomDelay(1, 10);
+    //   console.log("delay:", delay);
+    //   await new Promise((resolve) => setTimeout(resolve, delay));
+    //   await page.click("#SignOut_24409");
+    // }
+
+    // await page.waitForSelector('input[type="button"].is-premary', {
+    //   visible: true,
+    // });
+    // await page.click('input[type="button"].is-premary');
+
+    // 確認元素可見並添加邊框
     await page.evaluate(() => {
-      // const checkinButton = document.querySelector("#checkin-button");
-      const element = document.querySelector(
-        'a[href="/FActive/Detail/2756/25930?Q_SMS=0"].font.font-people.btn.is-premary.phonebtn[disabled="disabled"]'
+      const signInButton = document.querySelector(
+        '#SignIn_24409[disabled="disabled"]'
       );
-      element.style.border = "2px solid red";
+      const signOutButton = document.querySelector(
+        '#SignOut_24409[disabled="disabled"]'
+      );
+      if (signInButton) {
+        signInButton.style.border = "2px solid red";
+      }
+      if (signOutButton) {
+        signOutButton.style.border = "2px solid red";
+      }
     });
 
     // 確認元素可見
-    await page.waitForSelector(
-      'a[href="/FActive/Detail/2756/25930?Q_SMS=0"].font.font-people.btn.is-premary.phonebtn[disabled="disabled"]',
-      { visible: true }
-    );
+    await page.waitForSelector('#SignIn_24409[disabled="disabled"]', {
+      visible: true,
+    });
     console.log("打卡成功");
   } catch (error) {
     console.error("打卡失敗", error);
   } finally {
-    // await browser.close();
+    await browser.close();
   }
 }
 
