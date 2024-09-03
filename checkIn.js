@@ -16,7 +16,7 @@ async function autoCheckIn() {
   console.log("CHECKIN_PASSWORD:", process.env.CHECKIN_PASSWORD);
 
   const browser = await puppeteer.launch({
-    headless: true,
+    headless: false,
     args: ["--no-sandbox", "--disable-setuid-sandbox"],
   });
 
@@ -38,17 +38,25 @@ async function autoCheckIn() {
 
     console.log("currentHour:", currentHour);
 
+    // 點擊簽到或簽退按鈕
     // if (currentHour >= 8 && currentHour < 9) {
     //   const delay = getRandomDelay(1, 3);
     //   await new Promise((resolve) => setTimeout(resolve, delay));
-    //   await page.click("#SignIn_24409");
+    //   const signInButton = await page.$('[id^="SignIn_"]');
+    //   if (signInButton) {
+    //     await signInButton.click();
+    //   }
     // } else if (currentHour >= 18 && currentHour < 20) {
     //   const delay = getRandomDelay(1, 10);
     //   console.log("delay:", delay);
     //   await new Promise((resolve) => setTimeout(resolve, delay));
-    //   await page.click("#SignOut_24409");
+    //   const signOutButton = await page.$('[id^="SignOut_"]');
+    //   if (signOutButton) {
+    //     await signOutButton.click();
+    //   }
     // }
 
+    //確認簽到按鈕
     // await page.waitForSelector('input[type="button"].is-premary', {
     //   visible: true,
     // });
@@ -56,12 +64,9 @@ async function autoCheckIn() {
 
     // 確認元素可見並添加邊框
     await page.evaluate(() => {
-      const signInButton = document.querySelector(
-        '#SignIn_24409[disabled="disabled"]'
-      );
-      const signOutButton = document.querySelector(
-        '#SignOut_24409[disabled="disabled"]'
-      );
+      const signInButton = document.querySelector('[id^="SignIn_"]');
+      const signOutButton = document.querySelector('[id^="SignOut_"]');
+
       if (signInButton) {
         signInButton.style.border = "2px solid red";
       }
@@ -70,15 +75,15 @@ async function autoCheckIn() {
       }
     });
 
-    // 確認元素可見
-    await page.waitForSelector('#SignIn_24409[disabled="disabled"]', {
-      visible: true,
-    });
+    // // 確認元素可見
+    // await page.waitForSelector('[id^="SignIn_"][disabled="disabled"]', {
+    //   visible: true,
+    // });
     console.log("打卡成功");
   } catch (error) {
     console.error("打卡失敗", error);
   } finally {
-    await browser.close();
+    // await browser.close();
   }
 }
 
