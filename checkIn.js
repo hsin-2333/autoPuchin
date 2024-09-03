@@ -16,7 +16,7 @@ async function autoCheckIn() {
   console.log("CHECKIN_PASSWORD:", process.env.CHECKIN_PASSWORD);
 
   const browser = await puppeteer.launch({
-    headless: false,
+    headless: true,
     args: ["--no-sandbox", "--disable-setuid-sandbox"],
   });
 
@@ -83,7 +83,7 @@ async function autoCheckIn() {
   } catch (error) {
     console.error("打卡失敗", error);
   } finally {
-    // await browser.close();
+    await browser.close();
   }
 }
 
