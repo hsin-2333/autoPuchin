@@ -1,5 +1,6 @@
 require("dotenv").config();
-const puppeteer = require("puppeteer");
+const puppeteer = require("puppeteer-core");
+const chromium = require("@sparticuz/chromium");
 
 function getRandomDelay(minMinutes, maxMinutes) {
   const minMilliseconds = minMinutes * 60 * 1000;
@@ -12,8 +13,10 @@ function getRandomDelay(minMinutes, maxMinutes) {
 
 (async () => {
   const browser = await puppeteer.launch({
-    headless: true,
-    args: ["--no-sandbox", "--disable-setuid-sandbox"],
+    executablePath: await chromium.executablePath(), // 使用 @sparticuz/chromium 提供的可運行路徑
+    headless: chromium.headless,
+    args: chromium.args,
+    defaultViewport: chromium.defaultViewport,
   });
 
   let page;
