@@ -133,6 +133,10 @@ async function navigateWithRetry(page, url, options, retries = 3) {
     await new Promise((resolve) => setTimeout(resolve, delay));
     const signInButton = await page.$('[id^="SignIn_"]');
     if (signInButton) {
+      await page.evaluate((btn) => btn.scrollIntoView(), signInButton);
+      await page.waitForSelector('[id^="SignIn_"]:not([disabled])', {
+        visible: true,
+      });
       await signInButton.click();
     }
   } else if (currentUTCHour >= 10 && currentUTCHour < 12) {
@@ -142,6 +146,10 @@ async function navigateWithRetry(page, url, options, retries = 3) {
     await new Promise((resolve) => setTimeout(resolve, delay));
     const signOutButton = await page.$('[id^="SignOut_"]');
     if (signOutButton) {
+      await page.evaluate((btn) => btn.scrollIntoView(), signOutButton);
+      await page.waitForSelector('[id^="SignOut_"]:not([disabled])', {
+        visible: true,
+      });
       await signOutButton.click();
     }
   }
