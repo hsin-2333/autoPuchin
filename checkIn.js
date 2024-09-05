@@ -11,6 +11,18 @@ function getRandomDelay(minMinutes, maxMinutes) {
   );
 }
 
+async function navigateWithRetry(page, url, options, retries = 3) {
+  for (let i = 0; i < retries; i++) {
+    try {
+      await page.goto(url, options);
+      return;
+    } catch (error) {
+      console.error(`導航失敗，重試 ${i + 1}/${retries}`, error);
+      if (i === retries - 1) throw error;
+    }
+  }
+}
+
 (async () => {
   const browser = await puppeteer.launch({
     executablePath: await chromium.executablePath(),
@@ -39,7 +51,8 @@ function getRandomDelay(minMinutes, maxMinutes) {
         req.continue();
       }
     });
-    await page.goto("https://imo.3t.org.tw/Login", {
+
+    await navigateWithRetry(page, "https://imo.3t.org.tw/Login", {
       waitUntil: "networkidle0", // 等待所有網路連接結束
       timeout: 60000, // 設定 60 秒超時
     });
@@ -54,7 +67,7 @@ function getRandomDelay(minMinutes, maxMinutes) {
     await page.type("#ID", process.env.CHECKIN_USERNAME);
     await page.type("#PW", process.env.CHECKIN_PASSWORD);
     await page.click("#loginBtn");
-    await page.waitForNavigation();
+    await page.waitForNavigation({ timeout: 60000 }); // 增加導航超時時間
   } catch (error) {
     console.error("登入失敗", error);
     await browser.close();
@@ -62,7 +75,10 @@ function getRandomDelay(minMinutes, maxMinutes) {
   }
 
   try {
-    await page.goto("https://imo.3t.org.tw/FActive/Index/2756"); // 直接導航到打卡頁面
+    await navigateWithRetry(page, "https://imo.3t.org.tw/FActive/Index/2756", {
+      waitUntil: "networkidle0",
+      timeout: 60000,
+    }); // 直接導航到打卡頁面
   } catch (error) {
     console.error("導航打卡頁面失敗", error);
     await browser.close();
@@ -71,11 +87,9 @@ function getRandomDelay(minMinutes, maxMinutes) {
 
   // 獲取當前時間
   const currentTime = new Date();
-  const currentHour = currentTime.getHours();
+  const currentUTCHour = currentTime.getUTCHours();
 
-  console.log("currentHour:", currentHour);
-
-  // 這裡是你的簽到/簽退邏輯
+  console.log("currentUTCHour:", currentUTCHour);
 
   await page
     .waitForFunction(() => !!document.querySelector('[id^="SignIn_"]'), {
@@ -111,6 +125,35 @@ function getRandomDelay(minMinutes, maxMinutes) {
   if (result.signOutButtonExists) {
     console.log("成功抓到 signOutButton");
   }
+
+  /*
+  // 點擊簽到或簽退按鈕
+  if (currentUTCHour >= 0 && currentUTCHour < 1) {
+    // 台北時間 8 AM - 9 AM 對應 UTC 0 AM - 1 AM
+    const delay = getRandomDelay(1, 3);
+    await new Promise((resolve) => setTimeout(resolve, delay));
+    const signInButton = await page.$('[id^="SignIn_"]');
+    if (signInButton) {
+      await signInButton.click();
+    }
+  } else if (currentUTCHour >= 10 && currentUTCHour < 12) {
+    // 台北時間 6 PM - 8 PM 對應 UTC 10 AM - 12 PM
+    const delay = getRandomDelay(1, 2);
+    console.log("delay:", delay);
+    await new Promise((resolve) => setTimeout(resolve, delay));
+    const signOutButton = await page.$('[id^="SignOut_"]');
+    if (signOutButton) {
+      await signOutButton.click();
+    }
+  }
+
+  // 確認簽到按鈕
+  await page.waitForSelector('input[type="button"].is-premary', {
+    visible: true,
+  });
+  await page.click('input[type="button"].is-premary');
+
+  */
 
   await browser.close();
 })();
