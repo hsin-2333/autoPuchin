@@ -13,17 +13,36 @@ function getRandomDelay(minMinutes, maxMinutes) {
 
 (async () => {
   const browser = await puppeteer.launch({
-    executablePath: await chromium.executablePath(), // 使用 @sparticuz/chromium 提供的可運行路徑
+    executablePath: await chromium.executablePath(),
     headless: chromium.headless,
     args: chromium.args,
     defaultViewport: chromium.defaultViewport,
+    args: [
+      "--no-sandbox",
+      "--disable-setuid-sandbox",
+      "--disable-web-security",
+      "--disable-features=IsolateOrigins,site-per-process",
+    ],
   });
 
   let page;
 
   try {
     page = await browser.newPage();
-    await page.goto("https://imo.3t.org.tw/Login");
+
+    // 設置請求攔截以降低渲染負擔
+    await page.setRequestInterception(true);
+    page.on("request", (req) => {
+      if (["image", "stylesheet", "font"].includes(req.resourceType())) {
+        req.abort();
+      } else {
+        req.continue();
+      }
+    });
+    await page.goto("https://imo.3t.org.tw/Login", {
+      waitUntil: "networkidle0", // 等待所有網路連接結束
+      timeout: 60000, // 設定 60 秒超時
+    });
   } catch (error) {
     console.error("導航失敗", error);
     await browser.close();
