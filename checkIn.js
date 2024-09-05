@@ -102,22 +102,28 @@ async function navigateWithRetry(page, url, options, retries = 3) {
       console.log("等待 SignIn 按鈕超時。");
     });
 
-  const result = await page.evaluate(() => {
+  const result = await page.evaluate(async (currentUTCHour) => {
     const signInButton = document.querySelector('[id^="SignIn_"]');
     const signOutButton = document.querySelector('[id^="SignOut_"]');
 
     if (signInButton) {
       signInButton.style.border = "2px solid red";
+      if (currentUTCHour >= 0 && currentUTCHour < 1) {
+        await signInButton.click();
+      }
     }
     if (signOutButton) {
       signOutButton.style.border = "2px solid red";
+      if (currentUTCHour >= 10 && currentUTCHour < 12) {
+        await signOutButton.click();
+      }
     }
 
     return {
       signInButtonExists: !!signInButton,
       signOutButtonExists: !!signOutButton,
     };
-  });
+  }, currentUTCHour);
 
   if (result.signInButtonExists) {
     console.log("成功抓到 signInButton");
@@ -125,38 +131,10 @@ async function navigateWithRetry(page, url, options, retries = 3) {
   if (result.signOutButtonExists) {
     console.log("成功抓到 signOutButton");
   }
-
-  // 點擊簽到或簽退按鈕
-  if (currentUTCHour >= 0 && currentUTCHour < 1) {
-    // 台北時間 8 AM - 9 AM 對應 UTC 0 AM - 1 AM
-    const delay = getRandomDelay(1, 3);
-    await new Promise((resolve) => setTimeout(resolve, delay));
-    const signInButton = await page.$('[id^="SignIn_"]');
-    if (signInButton) {
-      await page.evaluate((btn) => btn.scrollIntoView(), signInButton);
-      await page.waitForSelector('[id^="SignIn_"]:not([disabled])', {
-        visible: true,
-      });
-      await signInButton.click();
-    }
-  } else if (currentUTCHour >= 10 && currentUTCHour < 12) {
-    // 台北時間 6 PM - 8 PM 對應 UTC 10 AM - 12 PM
-    const delay = getRandomDelay(1, 2);
-    console.log("delay:", delay);
-    await new Promise((resolve) => setTimeout(resolve, delay));
-    const signOutButton = await page.$('[id^="SignOut_"]');
-    if (signOutButton) {
-      await page.evaluate((btn) => btn.scrollIntoView(), signOutButton);
-      await page.waitForSelector('[id^="SignOut_"]:not([disabled])', {
-        visible: true,
-      });
-      await signOutButton.click();
-    }
-  }
-
   // 確認簽到按鈕
   await page.waitForSelector('input[type="button"].is-premary', {
     visible: true,
+    timeout: 60000, // 增加等待時間
   });
   await page.click('input[type="button"].is-premary');
 
