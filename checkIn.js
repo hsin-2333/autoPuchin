@@ -126,7 +126,6 @@ async function navigateWithRetry(page, url, options, retries = 3) {
     console.log("成功抓到 signOutButton");
   }
 
-  /*
   // 點擊簽到或簽退按鈕
   if (currentUTCHour >= 0 && currentUTCHour < 1) {
     // 台北時間 8 AM - 9 AM 對應 UTC 0 AM - 1 AM
@@ -152,8 +151,6 @@ async function navigateWithRetry(page, url, options, retries = 3) {
     visible: true,
   });
   await page.click('input[type="button"].is-premary');
-
-  */
 
   await browser.close();
 })();
