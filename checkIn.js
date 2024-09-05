@@ -10,31 +10,41 @@ function getRandomDelay(minMinutes, maxMinutes) {
   );
 }
 
-const puppeteer = require("puppeteer"); // 使用 Puppeteer 內置的 Chromium
-
 (async () => {
   const browser = await puppeteer.launch({
     headless: true,
     args: ["--no-sandbox", "--disable-setuid-sandbox"],
   });
 
+  let page;
+
   try {
-    const page = await browser.newPage();
+    page = await browser.newPage();
     await page.goto("https://imo.3t.org.tw/Login");
   } catch (error) {
     console.error("導航失敗", error);
+    await browser.close();
+    return; // 如果導航失敗，結束程式
   }
 
-  // 登入
-  await page.type("#ID", process.env.CHECKIN_USERNAME);
-  await page.type("#PW", process.env.CHECKIN_PASSWORD);
-  await page.click("#loginBtn");
-  await page.waitForNavigation();
+  try {
+    // 登入
+    await page.type("#ID", process.env.CHECKIN_USERNAME);
+    await page.type("#PW", process.env.CHECKIN_PASSWORD);
+    await page.click("#loginBtn");
+    await page.waitForNavigation();
+  } catch (error) {
+    console.error("登入失敗", error);
+    await browser.close();
+    return;
+  }
 
   try {
     await page.goto("https://imo.3t.org.tw/FActive/Index/2756"); // 直接導航到打卡頁面
   } catch (error) {
     console.error("導航打卡頁面失敗", error);
+    await browser.close();
+    return;
   }
 
   // 獲取當前時間
@@ -43,42 +53,42 @@ const puppeteer = require("puppeteer"); // 使用 Puppeteer 內置的 Chromium
 
   console.log("currentHour:", currentHour);
 
-  // 點擊簽到或簽退按鈕
-  // if (currentHour >= 8 && currentHour < 9) {
-  //   const delay = getRandomDelay(1, 3);
-  //   await new Promise((resolve) => setTimeout(resolve, delay));
-  //   const signInButton = await page.$('[id^="SignIn_"]');
-  //   if (signInButton) {
-  //     await signInButton.click();
-  //   }
-  // } else if (currentHour >= 18 && currentHour < 20) {
-  //   const delay = getRandomDelay(1, 10);
-  //   console.log("delay:", delay);
-  //   await new Promise((resolve) => setTimeout(resolve, delay));
-  //   const signOutButton = await page.$('[id^="SignOut_"]');
-  //   if (signOutButton) {
-  //     await signOutButton.click();
-  //   }
-  // }
+  // 這裡是你的簽到/簽退邏輯
 
-  // 確認簽到按鈕
-  // await page.waitForSelector('input[type="button"].is-premary', {
-  //   visible: true,
-  // });
+  await page
+    .waitForFunction(() => !!document.querySelector('[id^="SignIn_"]'), {
+      timeout: 5000,
+    })
+    .then(() => {
+      console.log("SignIn 按鈕出現了！");
+    })
+    .catch(() => {
+      console.log("等待 SignIn 按鈕超時。");
+    });
 
-  await page.evaluate(() => {
+  const result = await page.evaluate(() => {
     const signInButton = document.querySelector('[id^="SignIn_"]');
     const signOutButton = document.querySelector('[id^="SignOut_"]');
 
     if (signInButton) {
       signInButton.style.border = "2px solid red";
-      console.log("成功抓到 signInButton:", signInButton);
     }
     if (signOutButton) {
       signOutButton.style.border = "2px solid red";
-      console.log("成功抓到 signOutButton:", signOutButton);
     }
+
+    return {
+      signInButtonExists: !!signInButton,
+      signOutButtonExists: !!signOutButton,
+    };
   });
+
+  if (result.signInButtonExists) {
+    console.log("成功抓到 signInButton");
+  }
+  if (result.signOutButtonExists) {
+    console.log("成功抓到 signOutButton");
+  }
 
   await browser.close();
 })();
